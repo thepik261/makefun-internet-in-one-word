@@ -1,32 +1,35 @@
-// The Internet in One Word — make.fun bounty entry.
-// Writes one word describing the whole internet to /output/entry.txt.
-// The sealed gate requires 1-30 UTF-8 characters, not only whitespace;
-// pure Node stdlib, deterministic, no network.
-import { mkdirSync, writeFileSync, chmodSync } from "node:fs";
+import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-// The gate: /output/entry.txt must be UTF-8 text of 1 to 30
-// characters, not only whitespace, and a single word.
-const MAX_CHARS = 30;
+// The single word this entry must produce.
+const chosenWord = "doomscroll";
 
-const LINE = "doomscroll";
-
-if (LINE.length < 1 || LINE.length > MAX_CHARS) {
-  throw new Error(`LINE must be 1-${MAX_CHARS} characters, got ${LINE.length}`);
-}
-if (LINE.trim().length === 0) {
-  throw new Error("LINE must not be only whitespace");
-}
-if (LINE.includes("\n") || LINE.includes("\r")) {
-  throw new Error("LINE must be a single line");
+function fail(message: string): never {
+  console.error(`error: ${message}`);
+  process.exit(1);
 }
 
-const outDir = process.env.OUTPUT_DIR ?? "/output";
-mkdirSync(outDir, { recursive: true });
-const outPath = join(outDir, "entry.txt");
-writeFileSync(outPath, LINE + "\n", "utf8");
-try {
-  chmodSync(outPath, 0o644);
-} catch {
-  // best-effort: file is already written
+function checkWord(word: string): void {
+  if (word.length < 1 || word.length > 30) {
+    fail("word must be between 1 and 30 characters long");
+  }
+  if (word.trim().length === 0) {
+    fail("word must not be only whitespace");
+  }
+  if (word.includes("\n") || word.includes("\r")) {
+    fail("word must not contain newline characters");
+  }
 }
+
+function main(): void {
+  checkWord(chosenWord);
+  const outDir = process.env.OUTPUT_DIR ?? "/output";
+  mkdirSync(outDir, { recursive: true });
+  const target = join(outDir, "entry.txt");
+  writeFileSync(target, `${chosenWord}\n`, { mode: 0o644 });
+  // Force the mode explicitly so the umask cannot narrow it.
+  chmodSync(target, 0o644);
+  console.log(`wrote ${target}`);
+}
+
+main();
